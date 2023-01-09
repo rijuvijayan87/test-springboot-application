@@ -13,7 +13,7 @@ public class ReviewVerifier {
 
   public boolean doesMeetQualityStandards(String review) {
 
-    if (review.contains("Lorem ipsum")) {
+    if (review.toLowerCase().contains("lorem ipsum")) {
       return false;
     }
 
@@ -28,6 +28,7 @@ public class ReviewVerifier {
     }
 
     if (words.length <= 10) {
+      System.out.println("contains");
       return false;
     }
 

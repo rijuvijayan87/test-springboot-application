@@ -1,8 +1,5 @@
 package de.rieckpil.courses.book.review;
 
-import org.assertj.core.api.Assertions;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
@@ -10,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
-
-import java.util.List;
 
 import static de.rieckpil.courses.book.review.RandomReviewParameterResolverExtension.RandomReview;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,6 +23,7 @@ class ReviewVerifierTest {
   }
 
   @Test
+  @DisplayName("Should fail when review contains swear word")
   void shouldFailWhenReviewContainsSwearWord() {
     String review = "This book is shit";
     System.out.println("Testing a review");
@@ -39,19 +35,33 @@ class ReviewVerifierTest {
   @Test
   @DisplayName("Should fail when review contains 'lorem ipsum'")
   void testLoremIpsum() {
+    String review = "This book review contains lorem ipsum somewhere. Very detailed information of what it looks like";
+    boolean result = reviewVerifier.doesMeetQualityStandards(review);
+    assertFalse(result, "ReviewVerfier did not detect lorem ipsum");
   }
 
   @ParameterizedTest
   @CsvFileSource(resources = "/badReview.csv")
   void shouldFailWhenReviewIsOfBadQuality(String review) {
+    boolean result = reviewVerifier.doesMeetQualityStandards(review);
+    assertFalse(result, "ReviewVerfier did not detect review quality standards");
+
   }
 
   @RepeatedTest(5)
   void shouldFailWhenRandomReviewQualityIsBad(@RandomReview String review) {
+    boolean result = reviewVerifier.doesMeetQualityStandards(review);
+    assertFalse(result, "ReviewVerfier did not detect review quality standards");
   }
 
   @Test
   void shouldPassWhenReviewIsGood() {
+    String review = "I can totally recomment this book " +
+      "who is interested in learning how to write java code";
+
+    boolean result = reviewVerifier.doesMeetQualityStandards(review);
+    assertTrue(result, "ReviewVerifier did not pass a good review");
+
   }
 
   @Test

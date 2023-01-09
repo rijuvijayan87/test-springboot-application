@@ -2,32 +2,23 @@ package de.rieckpil.courses.book.management;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BookSynchronizationListenerTest {
 
-  private final static String VALID_ISBN = "1234567891234";
-
   @Mock
-  private BookRepository bookRepository;
-
+  private BookRepository mockedBookRepository;
   @Mock
-  private OpenLibraryApiClient openLibraryApiClient;
+  private OpenLibraryApiClient mockedOpenLibraryApiClient;
 
   @InjectMocks
-  private BookSynchronizationListener cut;
-
-  @Captor
-  private ArgumentCaptor<Book> bookArgumentCaptor;
-
+  private BookSynchronizationListener mockedBookSynchronizationListener;
   @Test
   void shouldRejectBookWhenIsbnIsMalformed() {
+    System.out.println(mockedBookSynchronizationListener.toString());
   }
 
   @Test
