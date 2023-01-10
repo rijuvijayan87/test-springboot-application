@@ -1,5 +1,6 @@
 package de.rieckpil.courses.book.review;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DataJpaTest(properties = {
   "spring.flyway.enabled=false",
   "spring.jpa.hibernate.ddl-auto=create-drop",
-  "spring.datasource.driver-class-name=com.p6spy.engine.spy.P6SpyDriver", // P6Spy
-  "spring.datasource.url=jdbc:p6spy:h2:mem:testing;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false" // P6Spy
+  "spring.datasource.driver-class-name=com.p6spy.engine.spy.P6SpyDriver",
+  "spring.datasource.url=jdbc:p6spy:h2:mem:testing;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false"
+
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class ReviewRepositoryTest {
@@ -28,7 +30,7 @@ class ReviewRepositoryTest {
   private EntityManager entityManager;
 
   @Autowired
-  private ReviewRepository cut;
+  private ReviewRepository reviewRepository;
 
   @Autowired
   private DataSource dataSource;
@@ -36,11 +38,47 @@ class ReviewRepositoryTest {
   @Autowired
   private TestEntityManager testEntityManager;
 
+  @BeforeEach
+  public void beforeEach() {
+    assertEquals(0, reviewRepository.count());
+  }
+
   @Test
   void notNull() throws SQLException {
+    assertNotNull(entityManager);
+    assertNotNull(reviewRepository);
+    assertNotNull(dataSource);
+    assertNotNull(testEntityManager);
+
+    System.out.println(dataSource.getConnection().getMetaData().getDatabaseProductName());
+
+    Review review = new Review();
+    review.setTitle("Review 101");
+    review.setContent("Good review");
+    review.setCreatedAt(LocalDateTime.now());
+    review.setRating(5);
+    review.setBook(null);
+    review.setUser(null);
+
+    //Review result = reviewRepository.save(review);
+    Review result = testEntityManager.persistFlushFind(review);
+    System.out.println(result);
+    assertNotNull(result.getId());
   }
 
   @Test
   void transactionalSupportTest() {
+    Review review = new Review();
+    review.setTitle("Review 101");
+    review.setContent("Good review");
+    review.setCreatedAt(LocalDateTime.now());
+    review.setRating(5);
+    review.setBook(null);
+    review.setUser(null);
+
+    //Review result = reviewRepository.save(review);
+    Review result = testEntityManager.persistFlushFind(review);
+    System.out.println(result);
+    assertNotNull(result.getId());
   }
 }

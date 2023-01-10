@@ -4,7 +4,7 @@
       "pattern": "localhost:"
     },
     {
-      "pattern": "/pom.xml"
+      "pattern": "/ml"
     },
     {
       "pattern": "https://www.linkedin.com/*"

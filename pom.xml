@@ -24,10 +24,10 @@
     <wiremock.version>2.33.2</wiremock.version>
     <selenium.version>4.1.4</selenium.version>
     <awaitility.version>4.2.0</awaitility.version>
-    <p6spy.version>3.9.1</p6spy.version>
     <mockito.version>4.4.0</mockito.version>
     <selenide.version>6.6.6</selenide.version>
     <commons-lang3.version>3.12.0</commons-lang3.version>
+    <p6spy.version>3.9.1</p6spy.version>
   </properties>
 
   <dependencyManagement>
