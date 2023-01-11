@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(BookController.class)
 class BookControllerTest {
 
+  private final String BOOKS_ENDPOINT = "/api/books";
   @MockBean
   private BookManagementService bookManagementService;
 
@@ -29,7 +30,7 @@ class BookControllerTest {
   @Test
   void shouldGetEmptyArrayWhenNoBooksExists() throws Exception {
     final MvcResult mvcResult = this.mockMvc
-      .perform(get("/api/books")
+      .perform(get(BOOKS_ENDPOINT)
         .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON))
       .andExpect(status().is(200))
       .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -41,7 +42,7 @@ class BookControllerTest {
   @Test
   void shouldNotReturnXML() throws Exception {
     this.mockMvc
-      .perform(get("/api/books")
+      .perform(get(BOOKS_ENDPOINT)
         .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_XML))
       .andExpect(status().isNotAcceptable());
 
@@ -58,7 +59,7 @@ class BookControllerTest {
     when(this.bookManagementService.getAllBooks()).thenReturn(Arrays.asList(bookOne, bookTwo));
 
     this.mockMvc
-      .perform(get("/api/books")
+      .perform(get(BOOKS_ENDPOINT)
         .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON))
       .andDo(MockMvcResultHandlers.print())
       .andExpect(status().is(200))
