@@ -1,8 +1,8 @@
 package de.rieckpil.courses.book.management;
 
-import java.io.IOException;
-import java.util.UUID;
-
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
 import org.junit.jupiter.api.BeforeAll;
@@ -24,56 +24,23 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.awaitility.Awaitility.given;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @Import(BookSynchronizationListener.class)
 @ImportAutoConfiguration(MessagingAutoConfiguration.class)
-@Testcontainers(disabledWithoutDocker = true)
 class BookSynchronizationListenerSliceTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(BookSynchronizationListenerSliceTest.class);
-
-  @Container
-  static LocalStackContainer localStack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.13.3"))
-    .withServices(LocalStackContainer.Service.SQS)
-    // can be removed with version 0.12.17 as LocalStack now has multi-region support https://docs.localstack.cloud/localstack/configuration/#deprecated
-    // .withEnv("DEFAULT_REGION", "eu-central-1")
-    .withLogConsumer(new Slf4jLogConsumer(LOG));
-
-  private static final String QUEUE_NAME = UUID.randomUUID().toString();
-  private static final String ISBN = "9780596004651";
-
-  @BeforeAll
-  static void beforeAll() throws IOException, InterruptedException {
-    localStack.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", QUEUE_NAME);
-  }
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("sqs.book-synchronization-queue", () -> QUEUE_NAME);
-  }
-
-  @TestConfiguration
-  static class TestConfig {
-
-    @Bean
-    public AmazonSQSAsync amazonSQS() {
-      return AmazonSQSAsyncClientBuilder.standard()
-        .withCredentials(localStack.getDefaultCredentialsProvider())
-        .withEndpointConfiguration(localStack.getEndpointConfiguration(SQS))
-        .build();
-    }
-
-    @Bean
-    public QueueMessagingTemplate queueMessagingTemplate(AmazonSQSAsync amazonSQS) {
-      return new QueueMessagingTemplate(amazonSQS);
-    }
-  }
 
   @Autowired
   private BookSynchronizationListener cut;
@@ -82,7 +49,7 @@ class BookSynchronizationListenerSliceTest {
   private QueueMessagingTemplate queueMessagingTemplate;
 
   @Autowired
-  private SimpleMessageListenerContainer messageListenerContainer;
+  private SimpleMessageListenerContainer simpleMessageListenerContainer;
 
   @MockBean
   private BookRepository bookRepository;
@@ -90,11 +57,67 @@ class BookSynchronizationListenerSliceTest {
   @MockBean
   private OpenLibraryApiClient openLibraryApiClient;
 
-  @Test
-  void shouldStartSQS() {
+  private static final String QUEUE_NAME = UUID.randomUUID().toString();
+  private static final String ISBN = "9780596004651";
+  static LocalStackContainer localStack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.13.3"))
+    .withServices(LocalStackContainer.Service.SQS)
+    .withLogConsumer(new Slf4jLogConsumer(LOG));
+
+  @BeforeAll
+  static void beforeAll() throws IOException, InterruptedException {
+    localStack.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", QUEUE_NAME);
+  }
+
+  @DynamicPropertySource
+  static void configureProperties(DynamicPropertyRegistry dynamicPropertyRegistry) {
+    dynamicPropertyRegistry.add("sqs.book-synchronization-queue", () -> QUEUE_NAME);
+  }
+
+  static  {
+    localStack.start();
+  }
+
+  @TestConfiguration
+  static class TestConfig{
+
+    @Bean
+    public AmazonSQSAsync amazonSQS() {
+      return AmazonSQSAsyncClientBuilder.standard()
+        .withEndpointConfiguration(
+          new AwsClientBuilder.EndpointConfiguration(
+            localStack.getEndpointOverride(LocalStackContainer.Service.SQS).toString(),
+            localStack.getRegion()
+          )
+        ).withCredentials(
+          new AWSStaticCredentialsProvider(
+            new BasicAWSCredentials(localStack.getAccessKey(), localStack.getSecretKey())
+          )
+        ).build();
+    }
+
+    @Bean
+    public QueueMessagingTemplate queueMessagingTemplate(AmazonSQSAsync amazonSQS) {
+      return new QueueMessagingTemplate(amazonSQS);
+    }
+
   }
 
   @Test
-  void shouldConsumeMessageWhenPayloadIsCorrect() {
+  public void shouldStartSQS() {
+    assertNotNull(cut);
+    assertNotNull(queueMessagingTemplate);
+    assertNotNull(simpleMessageListenerContainer);
+  }
+
+  @Test
+  public void shouldConsumeMessageWhenPayloadIsCorrect() {
+    queueMessagingTemplate.convertAndSend(QUEUE_NAME, new BookSynchronization(ISBN));
+
+    when(bookRepository.findByIsbn(ISBN)).thenReturn(new Book());
+
+    given()
+      .await()
+      .atMost(5, TimeUnit.SECONDS)
+      .untilAsserted(() -> verify(bookRepository).findByIsbn(ISBN));
   }
 }
